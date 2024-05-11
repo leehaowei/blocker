@@ -2,6 +2,18 @@ syntax = "proto3";
 
 option go_package = "github.com/leehaowei/blocker/proto";
 
+service Node {
+    rpc Handshake(Version) returns (Version);
+    rpc HandleTransaction(Transaction) returns (Ack);
+}
+
+message Version {
+    string version = 1;
+    int32 height = 2;
+}
+
+message Ack {}
+
 message Block {
     Header header = 1;
     repeated Transaction transactions = 2;
@@ -15,4 +27,23 @@ message Header {
     int64 timestamp = 5;
 }
 
-message Transaction {}
+message TxInput {
+    // the hash of the previous transaction containing
+    // the output spent
+    bytes prevTxHash = 1;
+    // the index of the output of the previous transaction spent
+    uint32 prevOutIndex = 2;
+    bytes publicKey = 3;
+    bytes signature = 4;
+}
+
+message TxOutput {
+    int64 amount = 1;
+    bytes address = 2;
+}
+
+message Transaction {
+    int32 version = 1;
+    repeated TxInput input = 2;
+    repeated TxOutput outputs = 3;
+}

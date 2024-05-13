@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/leehaowei/blocker/crypto"
@@ -48,5 +47,5 @@ func TestNewTransaction(t *testing.T) {
 
 	assert.True(t, VerifyTransaction(tx))
 
-	fmt.Printf("%+v\n", tx)
+	// fmt.Printf("%+v\n", tx)
 }

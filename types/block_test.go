@@ -1,8 +1,6 @@
 package types
 
 import (
-	"encoding/hex"
-	"fmt"
 	"testing"
 
 	"github.com/leehaowei/blocker/util"
@@ -26,6 +24,6 @@ func testSignBlock(t *testing.T) {
 func TestHashBlock(t *testing.T) {
 	block := util.RandomBlock()
 	hash := HashBlock(block)
-	fmt.Println(hex.EncodeToString(hash))
+	// fmt.Println(hex.EncodeToString(hash))
 	assert.Equal(t, 32, len(hash))
 }

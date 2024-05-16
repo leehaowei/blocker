@@ -1,6 +1,8 @@
 package node
 
 import (
+	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/leehaowei/blocker/crypto"
@@ -22,14 +24,14 @@ func randomBlock(t *testing.T, chain *Chain) *proto.Block {
 }
 
 func TestNewChain(t *testing.T) {
-	chain := NewChain(NewMemoryBlockStore())
+	chain := NewChain(NewMemoryBlockStore(), NewMemoryTxStore())
 	assert.Equal(t, 0, chain.Height())
 	_, err := chain.GetBlockByHeight(0)
 	assert.Nil(t, err)
 }
 
 func TestChainHeight(t *testing.T) {
-	chain := NewChain(NewMemoryBlockStore())
+	chain := NewChain(NewMemoryBlockStore(), NewMemoryTxStore())
 	for i := 0; i < 100; i++ {
 		b := randomBlock(t, chain)
 		require.Nil(t, chain.AddBlock(b))
@@ -38,7 +40,7 @@ func TestChainHeight(t *testing.T) {
 }
 
 func TestAddBlock(t *testing.T) {
-	chain := NewChain(NewMemoryBlockStore())
+	chain := NewChain(NewMemoryBlockStore(), NewMemoryTxStore())
 
 	for i := 0; i < 100; i++ {
 		block := randomBlock(t, chain)
@@ -54,4 +56,47 @@ func TestAddBlock(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, block, fetchedBlockBeyHeight)
 	}
+}
+
+func TestAddBlockWithTx(t *testing.T) {
+	var (
+		chain     = NewChain(NewMemoryBlockStore(), NewMemoryTxStore())
+		block     = randomBlock(t, chain)
+		privKey   = crypto.NewPrivateKeyFromSeedStr(godSeed)
+		recipient = crypto.GeneratePrivateKey().Public().Address().Byte()
+	)
+
+	ftt, err := chain.txStore.Get("5992c73a9240954b147a588a8e0290e1cb0f1743eb5a22e12936d192305c6e10")
+	assert.Nil(t, err)
+	fmt.Println(ftt)
+
+	inputs := []*proto.TxInput{
+		{
+			PrevTxHash:   types.HashTransaction(ftt),
+			PrevOutIndex: 0,
+			PublicKey:    privKey.Public().Bytes(),
+		},
+	}
+	outputs := []*proto.TxOutput{
+		{
+			Amount:  100,
+			Address: recipient,
+		},
+		{
+			Amount:  900,
+			Address: privKey.Public().Address().Byte(),
+		},
+	}
+	tx := &proto.Transaction{
+		Version: 1,
+		Input:   inputs,
+		Outputs: outputs,
+	}
+	block.Transactions = append(block.Transactions, tx)
+	require.Nil(t, chain.AddBlock(block))
+	txHash := hex.EncodeToString(types.HashTransaction(tx))
+
+	fetchedTx, err := chain.txStore.Get(txHash)
+	assert.Nil(t, err)
+	assert.Equal(t, tx, fetchedTx)
 }

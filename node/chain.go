@@ -10,6 +10,8 @@ import (
 	"github.com/leehaowei/blocker/types"
 )
 
+const godSeed = "d233cc016102c74f8f449254d16264bda1b79c60cc24dd794842e4f8d36c9e36"
+
 type HeaderList struct {
 	headers []*proto.Header
 }
@@ -41,13 +43,15 @@ func (list *HeaderList) Len() int {
 }
 
 type Chain struct {
+	txStore    TXStorer
 	blockStore BlockStorer
 	headers    *HeaderList
 }
 
-func NewChain(bs BlockStorer) *Chain {
+func NewChain(bs BlockStorer, txStore TXStorer) *Chain {
 	chain := &Chain{
 		blockStore: bs,
+		txStore:    txStore,
 		headers:    NewHeaderList(),
 	}
 	chain.addBlock(createGenisisBlock())
@@ -69,6 +73,13 @@ func (c *Chain) AddBlock(b *proto.Block) error {
 func (c *Chain) addBlock(b *proto.Block) error {
 	// Add the header to the List of headers
 	c.headers.Add(b.Header)
+
+	for _, tx := range b.Transactions {
+		fmt.Println("NEW TX: ", hex.EncodeToString(types.HashTransaction(tx)))
+		if err := c.txStore.Put(tx); err != nil {
+			return err
+		}
+	}
 	// validation
 	return c.blockStore.Put(b)
 }
@@ -106,12 +117,27 @@ func (c *Chain) ValidateBlock(b *proto.Block) error {
 }
 
 func createGenisisBlock() *proto.Block {
-	privKey := crypto.GeneratePrivateKey()
+	privKey := crypto.NewPrivateKeyFromSeedStr(godSeed)
+
 	block := &proto.Block{
 		Header: &proto.Header{
 			Version: 1,
 		},
 	}
+	types.SignBlock(privKey, block)
+
+	tx := &proto.Transaction{
+		Version: 1,
+		Input:   []*proto.TxInput{},
+		Outputs: []*proto.TxOutput{
+			{
+				Amount:  1000,
+				Address: privKey.Public().Address().Byte(),
+			},
+		},
+	}
+
+	block.Transactions = append(block.Transactions, tx)
 	types.SignBlock(privKey, block)
 
 	return block

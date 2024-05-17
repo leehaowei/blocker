@@ -68,7 +68,6 @@ func TestAddBlockWithTx(t *testing.T) {
 
 	ftt, err := chain.txStore.Get("5992c73a9240954b147a588a8e0290e1cb0f1743eb5a22e12936d192305c6e10")
 	assert.Nil(t, err)
-	fmt.Println(ftt)
 
 	inputs := []*proto.TxInput{
 		{
@@ -92,6 +91,10 @@ func TestAddBlockWithTx(t *testing.T) {
 		Input:   inputs,
 		Outputs: outputs,
 	}
+
+	sig := types.SignTransaction(privKey, tx)
+	tx.Input[0].Signature = sig.Bytes()
+
 	block.Transactions = append(block.Transactions, tx)
 	require.Nil(t, chain.AddBlock(block))
 	txHash := hex.EncodeToString(types.HashTransaction(tx))
@@ -99,4 +102,12 @@ func TestAddBlockWithTx(t *testing.T) {
 	fetchedTx, err := chain.txStore.Get(txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, tx, fetchedTx)
+
+	// TODO: check if their is an UTXO that is unspent
+	address := crypto.AddressFromByte(tx.Outputs[1].Address)
+	key := fmt.Sprintf("%s_%s", address, txHash)
+
+	utxo, err := chain.utxoStore.Get(key)
+	assert.Nil(t, err)
+	fmt.Println(utxo)
 }

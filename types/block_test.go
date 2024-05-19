@@ -3,11 +3,27 @@ package types
 import (
 	"testing"
 
+	"github.com/leehaowei/blocker/proto"
 	"github.com/leehaowei/blocker/util"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/leehaowei/blocker/crypto"
 )
+
+func TestCalculateRootHash(t *testing.T) {
+	var (
+		prviKey = crypto.GeneratePrivateKey()
+		block   = util.RandomBlock()
+		tx      = &proto.Transaction{
+			Version: 1,
+		}
+	)
+	block.Transactions = append(block.Transactions, tx)
+	SignBlock(prviKey, block)
+
+	assert.True(t, VerifyRootHash(block))
+	assert.Equal(t, 32, len(block.Header.RootHash))
+}
 
 func TestSignVerifyBlock(t *testing.T) {
 	var (

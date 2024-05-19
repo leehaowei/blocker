@@ -33,6 +33,7 @@ message Header {
     int64 timestamp = 5;
 }
 
+// soutce of fund
 message TxInput {
     // the hash of the previous transaction containing
     // the output spent
